@@ -67,7 +67,10 @@ Analysis	Image inspector: zoom/pan, region select, 42-band overlay of the DL0AO 
 Season	Real signal seasonality from your CSV: monthly-average and daily heatmaps per station (ON% or normalized level), with a median-of-stations row.
 
 
-<img width="1916" height="923" alt="image" src="https://github.com/user-attachments/assets/6bda638d-402f-411c-9ec4-57486b521165" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/62fe758b-2cfc-48ad-bf02-88e6b129aa24" />
+
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/c6cac133-6ed6-4430-8df1-d281eab0ba67" />
 
 
 Engineering	Radio-engineering statistics: solar correlation (Pearson r + best lag), day/night ON% separation, apparent-signal vs distance scatter (click-to-highlight), anomaly detection (daytime openings / night outages), CSV report.
