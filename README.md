@@ -164,6 +164,20 @@ Summary columns explained
  Station coordinates verification (v:0 entries)
 
 
+🔗 Extra File:
+
+ 
+- loran_data.json
+json ready to import - 01012026 to 30082026
+
+- lorvw_260101-0430.jpg
+Image spectrum from 01/01/2026 to 30/08/2026
+
+- lorvwold.jpg
+image spectrum from 10/09/2026 to 14/09/2026
+
+The CSV files are too large to be included here, but you can generate them from the code.
+
 📄 License & disclaimer
 
 This tool is provided for research and educational purposes. Extracted states arepixel-derived estimates, not authoritative service status. Use the data accordingly.
