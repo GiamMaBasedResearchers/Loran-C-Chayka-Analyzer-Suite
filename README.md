@@ -158,15 +158,15 @@ Summary columns explained
 
 🛣 Roadmap
 
- Core extraction (frozen v1.0)
- World station DB + interactive map
- Real-signal map animation
- Signal seasonality (monthly/daily)
- Engineering statistics & anomaly report
- Per-station detail view (monthly trend chart)
- Direct extractor→modules data handoff (postMessage, no CSV round-trip)
- Refined coverage model (land/sea routing per azimuth, DF6NM-style blobs)
- Station coordinates verification (v:0 entries)
+ - Core extraction (frozen v1.0)
+ - World station DB + interactive map
+ - Real-signal map animation
+ - Signal seasonality (monthly/daily)
+ - Engineering statistics & anomaly report
+ - Per-station detail view (monthly trend chart)
+ - Direct extractor→modules data handoff (postMessage, no CSV round-trip)
+ - Refined coverage model (land/sea routing per azimuth, DF6NM-style blobs)
+ - Station coordinates verification (v:0 entries)
 
 
 🔗 Extra File:
