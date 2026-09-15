@@ -82,7 +82,6 @@ Runs 100% client-side — no server, no data leaves your machine (basemap tiles 
 
 🚀 Installation / Quick start
 
-🚀 Installation / Quick start
 1. Download / clone the repository — file list:
 index.html            shell: tabs, module loader, shared APIcore_extractor.html   extraction core (frozen v1.0, runs in an iframe)stations.js           world station database (~70 entries)map.js                Leaflet map + real-signal animationseason.js             monthly / daily signal heatmapstools.js              image inspector (zoom, bands, deep dive)engineering.js        engineering statistics & report
 2. Open index.html in a modern browser (Chrome/Edge/Firefox). No build, no server needed.Internet is required only for the map basemap tiles (the map degrades gracefully to"No basemap" offline; everything else is fully offline).
@@ -90,7 +89,12 @@ index.html            shell: tabs, module loader, shared APIcore_extractor.html 
 
 Typical workflow
 
-1. Extractor → drop the monitor image (grab time auto-filled from file timestamp)2. Simple mode → ANALYZE → check "Verify on image" (green/red/blue mask must match the picture)3. Export "Signal metric CSV" (recommended) and/or "Full data CSV"4. Season  → load the CSV → monthly/daily heatmaps5. Map     → Advanced → load the CSV → play the extract over the world map6. Engineering → load the metric CSV → statistics, scatter, anomalies, report7. Analysis → load the same image → zoom, bands, single-station deep dive
+1. Extractor → drop the monitor image (grab time auto-filled from file timestamp)
+2. Simple mode → ANALYZE → check "Verify on image" (green/red/blue mask must match the picture)
+3. Export "Signal metric CSV" (recommended) and/or "Full data CSV"
+4. Season  → load the CSV → monthly/daily heatmaps
+5. Map     → Advanced → load the CSV → play the extract over the world map
+6. Engineering → load the metric CSV → statistics, scatter, anomalies, report7. Analysis → load the same image → zoom, bands, single-station deep dive
 
 
 🔬 How the extraction works
