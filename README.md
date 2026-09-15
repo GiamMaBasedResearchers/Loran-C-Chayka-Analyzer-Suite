@@ -185,11 +185,11 @@ The CSV files are too large to be included here, but you can generate them from 
 
 📄 License & disclaimer
 
-This tool is provided for research and educational purposes. Extracted states arepixel-derived estimates, not authoritative service status. Use the data accordingly.
+This tool is provided for research and educational purposes. Extracted states are pixel-derived estimates, not authoritative service status. Use the data accordingly.
 
 License: (choose — e.g. MIT / CC-BY — before publishing)
 
-This application is for educational and navigation enthusiast purposes only. Loran-C data is crowdsourced and may contain errors or incomplete information. Do not use this tool for navigation or critical operations.
+This application is for educational and navigation enthusiast purposes only. May contain errors or incomplete information. Do not use this tool for navigation or critical operations.
 
 This code provide from: "GiamMa-based researchers SDR R&D IoT" | @GiammaIoT2 License
 
