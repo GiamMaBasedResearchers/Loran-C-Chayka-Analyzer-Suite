@@ -1,5 +1,5 @@
 Loran-C / Chayka Analyzer Suite
-Modular offline-first tool suite for extracting, visualizing and analyzing Loran-C / Chaykasignal presence from long-term monitor images.
+Modular offline-first tool suite for extracting, visualizing and analyzing Loran-C / Chayka signal presence from long-term monitor images.
 
 Obviously, there will be several fixes to be made, and the code isn't clean, and you will find entities that appear to be false positives but are not always false positives. I consider the exercise very interesting for various levels of understanding, knowledge and technicalities.
 
