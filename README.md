@@ -94,7 +94,8 @@ Typical workflow
 3. Export "Signal metric CSV" (recommended) and/or "Full data CSV"
 4. Season  → load the CSV → monthly/daily heatmaps
 5. Map     → Advanced → load the CSV → play the extract over the world map
-6. Engineering → load the metric CSV → statistics, scatter, anomalies, report7. Analysis → load the same image → zoom, bands, single-station deep dive
+6. Engineering → load the metric CSV → statistics, scatter, anomalies, report
+7. Analysis → load the same image → zoom, bands, single-station deep dive
 
 
 🔬 How the extraction works
