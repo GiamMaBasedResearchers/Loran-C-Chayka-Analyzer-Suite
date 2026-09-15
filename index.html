@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loran-C / Chayka Analyzer Suite</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 14px 20px; }
+  h1 { font-size: 1.3rem; color: #58a6ff; margin-bottom: 2px; }
+  .subtitle { color: #8b949e; font-size: 0.8rem; margin-bottom: 12px; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+  .tab-btn {
+    padding: 8px 18px; background: #21262d; border: 1px solid #30363d; border-bottom: none;
+    color: #8b949e; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 0.85rem; font-weight: 600;
+  }
+  .tab-btn.active { background: #161b22; color: #58a6ff; }
+  .tab-btn .badge { font-size: 0.65rem; background: #30363d; border-radius: 8px; padding: 1px 6px; margin-left: 5px; color: #8b949e; }
+  .tab-btn .badge.on { background: #238636; color: #fff; }
+  .tab-btn .badge.err { background: #4a1c1c; color: #f85149; }
+  .tab-content { display: none; background: #161b22; border: 1px solid #30363d; border-radius: 0 10px 10px 10px; padding: 14px; }
+  .tab-content.active { display: block; }
+  iframe#coreFrame { width: 100%; height: calc(100vh - 150px); border: none; border-radius: 8px; background: #0d1117; }
+  .placeholder { color: #8b949e; font-size: 0.9rem; padding: 40px; text-align: center; border: 2px dashed #30363d; border-radius: 10px; }
+  .placeholder b { color: #58a6ff; }
+  .linkrow { font-size: 0.8rem; color: #8b949e; margin: 5px 0; }
+  .linkrow a { color: #58a6ff; }
+  .verdict { display: inline-block; padding: 1px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; margin-right: 6px; }
+  .v-keep { background: #1c4a2e; color: #7ee787; }
+  .v-skip { background: #4a1c1c; color: #f85149; }
+  .v-data { background: #1c2e4a; color: #79c0ff; }
+  table.rm { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 10px 0; }
+  table.rm th { background: #21262d; padding: 6px 9px; text-align: left; color: #58a6ff; }
+  table.rm td { padding: 6px 9px; border-bottom: 1px solid #21262d; }
+  #leafletWarn { display: none; color: #f85149; font-size: 0.8rem; margin: 8px 0; }
+</style>
+</head>
+<body>
+<h1>Loran-C / Chayka Analyzer Suite</h1>
+<p class="subtitle">Modular suite &mdash; the extractor core (v1.0, frozen) runs unchanged in an isolated frame; sections load as separate modules from this folder. Dataset window: 2026-01-01 &rarr; 2026-08-30.<br>
+This code provided from: "<b>GiamMa-based researchers SDR R&amp;D IoT</b>" | <a href="https://x.com/giammaiot2" target="_blank" style="color:#58a6ff">@GiammaIoT2</a></p>
+
+<div class="tabs" id="tabBar"></div>
+
+<div class="tab-content active" id="tc-extractor">
+  <iframe id="coreFrame" src="core_extractor.html" title="Extractor core"></iframe>
+</div>
+
+<div class="tab-content" id="tc-map">
+  <div id="leafletWarn">Map basemap library (Leaflet) could not be loaded &mdash; internet required
+  for the map tiles. All other sections work offline.</div>
+  <div id="mapRoot"></div>
+</div>
+<div class="tab-content" id="tc-analysis"><div id="analysisRoot"></div></div>
+<div class="tab-content" id="tc-season"><div id="seasonRoot"></div></div>
+<div class="tab-content" id="tc-engineering"><div id="engineeringRoot"></div></div>
+
+<div class="tab-content" id="tc-info">
+  <h2 style="color:#58a6ff;font-size:1rem;margin-bottom:8px">Development roadmap</h2>
+  <table class="rm">
+    <tr><th>Phase</th><th>Module</th><th>Content</th><th>Status</th></tr>
+    <tr><td>Core</td><td>core_extractor.html</td><td>ON/OFF extraction, column detection, CSV/JSON export (Simple/Advanced)</td><td>FROZEN v1.0 ✔</td></tr>
+    <tr><td>2</td><td>stations.js</td><td>World station DB (71 entries): monitored tracks + historical chains per DF6NM world map &amp; Wikipedia; the 4 GRI on air 2026-09-10 included</td><td>delivered ✔</td></tr>
+    <tr><td>2</td><td>map.js</td><td>Leaflet world map: stations, GRI links, coverage, Esri basemaps with fallback</td><td>delivered ✔</td></tr>
+    <tr><td>2a</td><td>season.js</td><td>REAL signal seasonality: monthly averages &amp; daily heatmaps from the extractor CSV</td><td>delivered ✔</td></tr>
+    <tr><td>1</td><td>tools.js</td><td>Zoom/pan, region select, deep region analysis</td><td>delivered ✔</td></tr>
+    <tr><td>3</td><td>engineering.js</td><td>Solar correlation, distance scatter, anomaly detection, report</td><td>delivered ✔</td></tr>
+  </table>
+  <h2 style="color:#58a6ff;font-size:1rem;margin:14px 0 8px">External resources &mdash; evaluation</h2>
+  <div class="linkrow"><span class="verdict v-skip">SKIP</span><a href="https://pskreporter.info/pskmap.html" target="_blank">pskreporter.info</a> — ham-band automated spots only (FT8/WSPR on HF); no VLF/Loran reporting network exists. Our extracted ON/OFF data IS the VLF propagation dataset.</div>
+  <div class="linkrow"><span class="verdict v-skip">SKIP</span><a href="https://hf.dxview.org/map" target="_blank">hf.dxview.org</a> — coverage stops at 1.8 MHz, no VLF. Concept reimplemented in the coverage model.</div>
+  <div class="linkrow"><span class="verdict v-data">DATA</span><a href="https://climateviewer.org/history-and-science/atmospheric-sensors-and-emf-sites/maps/extremely-low-frequency-elf-ulf-vlf-transmission-sites/" target="_blank">climateviewer ELF/ULF/VLF map</a> — source of transmitter coordinates, not an embeddable map.</div>
+  <div class="linkrow"><span class="verdict v-keep">REF</span><a href="http://df6nm.bplaced.net/LoranView/LoranView_animation.htm" target="_blank">LoranView animation</a> — reference for seasonality, coverage rendering and the world station set.</div>
+  <div class="linkrow"><span class="verdict v-keep">REF</span><a href="https://en.wikipedia.org/wiki/Loran-C" target="_blank">Wikipedia Loran-C</a> · <a href="https://it.wikipedia.org/wiki/LORAN" target="_blank">LORAN (it)</a> · <a href="https://it.wikipedia.org/wiki/Chayka" target="_blank">Chayka (it)</a> — chain tables and station lists used for stations.js.</div>
+</div>
+
+<script>
+"use strict";
+/* ═════════ SHELL: tabs, Leaflet loader, module loader, shared API ═════════ */
+const TABS = [
+  ["extractor", "Extractor"],
+  ["map", "Map"],
+  ["analysis", "Analysis"],
+  ["season", "Season"],
+  ["engineering", "Engineering"],
+  ["info", "Info"]
+];
+const $ = id => document.getElementById(id);
+
+function buildTabs() {
+  const bar = $("tabBar");
+  for (const [id, label] of TABS) {
+    const b = document.createElement("button");
+    b.className = "tab-btn" + (id === "extractor" ? " active" : "");
+    b.innerHTML = label + '<span class="badge" id="badge-' + id + '"></span>';
+    b.onclick = () => showTab(id);
+    bar.appendChild(b);
+  }
+}
+function showTab(id) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  const btns = document.querySelectorAll(".tab-btn");
+  const idx = TABS.findIndex(t => t[0] === id);
+  if (btns[idx]) btns[idx].classList.add("active");
+  const tc = $("tc-" + id);
+  if (tc) tc.classList.add("active");
+  const api = window.LORAN_API;
+  if (api && api.modules[id] && api.modules[id].onShow) {
+    try { api.modules[id].onShow(); } catch (e) { console.error(e); }
+  }
+}
+function setBadge(id, on, txt) {
+  const el = $("badge-" + id);
+  if (!el) return;
+  el.className = "badge" + (on ? " on" : (txt === "err" ? " err" : ""));
+  el.textContent = txt;
+}
+function placeholder(rootId, name, file) {
+  $(rootId).innerHTML =
+    '<div class="placeholder"><b>' + name + '</b><br>Module file <code>' + file +
+    '</code> not found in this folder.<br>See the Info tab for the roadmap.</div>';
+}
+
+/* Shared API exposed to modules */
+window.LORAN_API = {
+  modules: {},
+  receiver: { name: "DL0AO Munich", lat: 48.1, lon: 11.6 },
+  dataset: { start: "2026-01-01", end: "2026-08-30" },   // single source of truth
+  leaflet: { ready: false, failed: false, cbs: [] },
+  register(name, mod) {
+    this.modules[name] = mod;
+    const map = { map: ["map", "mapRoot"], analysis: ["analysis", "analysisRoot"],
+                  season: ["season", "seasonRoot"], engineering: ["engineering", "engineeringRoot"],
+                  tools: ["analysis", "analysisRoot"] };
+    const m = map[name];
+    if (m) {
+      try { mod.init($(m[1]), this); setBadge(m[0], true, "ok"); }
+      catch (e) { console.error(name, e); setBadge(m[0], false, "err"); }
+    }
+  },
+  stations() { return window.LORAN_STATIONS || []; },
+  greatCircleKm(a, b) {
+    const R = 6371, r = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+    const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+};
+
+buildTabs();
+placeholder("mapRoot", "Interactive map", "stations.js + map.js");
+placeholder("analysisRoot", "Analysis toolkit", "tools.js");
+placeholder("seasonRoot", "Seasonality engine", "season.js");
+placeholder("engineeringRoot", "Radio engineering suite", "engineering.js");
+
+/* ── Leaflet loader (shell-level, one-shot) ── */
+(function loadLeaflet() {
+  const api = window.LORAN_API;
+  const css = document.createElement("link");
+  css.rel = "stylesheet";
+  css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  document.head.appendChild(css);
+  const js = document.createElement("script");
+  js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  js.onload = () => {
+    api.leaflet.ready = true;
+    api.leaflet.cbs.forEach(f => { try { f(); } catch (e) { console.error(e); } });
+    api.leaflet.cbs = [];
+  };
+  js.onerror = () => {
+    api.leaflet.failed = true;
+    $("leafletWarn").style.display = "block";
+    if (!api.modules.map) setBadge("map", false, "err");
+  };
+  document.head.appendChild(js);
+})();
+
+/* ── tolerant module loader — async:false keeps order deterministic ── */
+const FILES = ["stations.js", "map.js", "tools.js", "season.js", "engineering.js"];
+for (const f of FILES) {
+  const s = document.createElement("script");
+  s.src = f;
+  s.async = false;
+  s.onerror = () => { if (f === "stations.js") setBadge("map", false, "no data"); };
+  document.head.appendChild(s);
+}
+window.addEventListener("load", () => {
+  if (!window.LORAN_STATIONS) setBadge("map", false, "no data");
+  else if (!window.LORAN_API.modules.map) setBadge("map", false, "map.js missing");
+});
+</script>
+</body>
+</html>

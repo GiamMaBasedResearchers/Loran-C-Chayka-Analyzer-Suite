@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loran-C / Chayka ON/OFF Extractor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 20px; }
+  .container { max-width: 1500px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; color: #58a6ff; margin-bottom: 4px; }
+  .subtitle { color: #8b949e; font-size: 0.88rem; margin-bottom: 14px; }
+  .modeswitch { display: flex; margin-bottom: 16px; }
+  .modeswitch button {
+    padding: 8px 26px; border: 1px solid #30363d; background: #21262d; color: #8b949e;
+    font-weight: 600; cursor: pointer; font-size: 0.9rem;
+  }
+  .modeswitch button:first-child { border-radius: 8px 0 0 8px; }
+  .modeswitch button:last-child  { border-radius: 0 8px 8px 0; border-left: none; }
+  .modeswitch button.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+  body.mode-simple .adv-only { display: none !important; }
+  .layout { display: grid; grid-template-columns: 350px 1fr; gap: 18px; }
+  @media (max-width: 950px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .panel h2 { font-size: 0.95rem; color: #58a6ff; margin-bottom: 10px; }
+  label { display: block; margin: 9px 0 3px; font-size: 0.8rem; color: #8b949e; }
+  input[type="text"], input[type="number"], input[type="datetime-local"], textarea, select {
+    width: 100%; padding: 6px 9px; background: #0d1117; color: #e6edf3;
+    border: 1px solid #30363d; border-radius: 6px; font-size: 0.82rem;
+  }
+  textarea { height: 150px; resize: vertical; font-family: monospace; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: #58a6ff; }
+  .row { display: flex; gap: 6px; }
+  .row > div { flex: 1; }
+  .chk { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; margin: 7px 0; cursor: pointer; }
+  .chk input { width: auto; }
+  button {
+    padding: 8px 14px; border: none; border-radius: 6px; font-size: 0.85rem;
+    cursor: pointer; font-weight: 600; transition: background .2s;
+  }
+  .btn-primary { background: #238636; color: #fff; width: 100%; margin-top: 14px; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-secondary { background: #21262d; color: #58a6ff; border: 1px solid #30363d; width: 100%; margin-top: 6px; }
+  .btn-secondary:hover { background: #30363d; }
+  .btn-export { background: #1f6feb; color: #fff; }
+  .btn-export:hover { background: #388bfd; }
+  .dropzone {
+    border: 2px dashed #30363d; border-radius: 10px; padding: 26px 14px;
+    text-align: center; cursor: pointer; color: #8b949e; font-size: 0.85rem;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: #58a6ff; background: rgba(88,166,255,.05); }
+  .canvas-wrap { position: relative; overflow: auto; background: #000; border-radius: 8px; }
+  canvas#mainCanvas { display: block; max-width: 100%; }
+  #pickHint {
+    position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.85);
+    padding: 6px 10px; border-radius: 6px; font-size: 0.78rem; color: #ffb84d; display: none;
+  }
+  .status { margin-top: 10px; padding: 8px 11px; border-radius: 6px; font-size: 0.8rem; display: none; }
+  .status.info    { display: block; background: #1c2e4a; color: #79c0ff; }
+  .status.error   { display: block; background: #4a1c1c; color: #f85149; }
+  .status.success { display: block; background: #1c4a2e; color: #7ee787; }
+  #imgInfo { font-size: 0.78rem; color: #8b949e; margin-top: 6px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 7px 14px; background: #21262d; border: 1px solid #30363d; color: #8b949e;
+    border-radius: 6px 6px 0 0; cursor: pointer; font-size: 0.82rem; font-weight: 400;
+  }
+  .tab-btn.active { background: #0d1117; color: #58a6ff; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .table-wrap { overflow: auto; max-height: 480px; border: 1px solid #30363d; border-radius: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; white-space: nowrap; }
+  th { background: #21262d; padding: 7px 9px; text-align: left; color: #58a6ff; position: sticky; top: 0; }
+  td { padding: 5px 9px; border-bottom: 1px solid #21262d; }
+  tr:hover { background: rgba(88,166,255,.05); }
+  .badge-on { color: #7ee787; font-weight: 700; }
+  .badge-off { color: #f85149; font-weight: 700; }
+  .badge-nd { color: #8b949e; font-weight: 700; }
+  .st-absent { color: #f85149; font-weight: 700; }
+  .st-ok { color: #7ee787; }
+  .chart-container { position: relative; overflow: auto; }
+  #chartTip {
+    position: fixed; display: none; background: #161b22; border: 1px solid #58a6ff;
+    border-radius: 6px; padding: 7px 10px; font-size: 0.78rem; pointer-events: none; z-index: 50;
+  }
+  .export-bar { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .export-bar button { flex: 1; min-width: 150px; }
+  .note { font-size: 0.75rem; color: #8b949e; margin-top: 6px; }
+  details summary { cursor: pointer; font-size: 0.82rem; color: #58a6ff; margin: 6px 0; }
+  .legend { display: flex; gap: 14px; font-size: 0.72rem; color: #8b949e; margin-top: 4px; flex-wrap: wrap; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body class="mode-simple">
+<div class="container">
+  <h1>Loran-C / Chayka &mdash; ON/OFF Timeline Extractor</h1>
+  <p class="subtitle">
+    Extract starts at <b>2026-01-01 00:00 UTC</b> (bottom) and ends at the <b>grab time</b> (top).
+    Column mapping: global uniform-grid fit; dark/active classification is based on the <b>peak</b>
+    column activity inside each band (dashed traces stay active, true black gaps go dark).
+    Column overrides are hard switches: <code>on:</code> forces the station present, <code>dark:</code>
+    forces NO SIGNAL.
+  </p>
+
+  <div class="modeswitch">
+    <button id="modeSimple" class="active" onclick="setMode('simple')">Simple</button>
+    <button id="modeAdvanced" onclick="setMode('advanced')">Advanced</button>
+  </div>
+
+  <div class="layout">
+    <!-- ══════════ LEFT: PARAMETERS ══════════ -->
+    <div>
+      <div class="panel">
+        <h2>Image</h2>
+        <div class="dropzone" id="dropzone">
+          Drop the image here<br>or click to browse
+          <input type="file" id="fileInput" accept="image/*" style="display:none">
+        </div>
+        <div id="imgInfo">No image loaded.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Grab time</h2>
+        <label>Image grabbed / downloaded at (auto-filled from the file timestamp)</label>
+        <input type="datetime-local" id="dlTime">
+        <label class="chk adv-only"><input type="checkbox" id="dlAsUTC"> Interpret the grab time as UTC (default: local time)</label>
+        <div class="adv-only">
+          <label>Extract start (bottom of plot, UTC)</label>
+          <input type="datetime-local" id="exStart" value="2026-01-01T00:00">
+          <label class="chk"><input type="checkbox" id="newestAtTop" checked> Newest at top (time flows bottom &rarr; top)</label>
+          <label>Calibration source</label>
+          <select id="calSource">
+            <option value="grab" selected>Extract start + grab time</option>
+            <option value="manual">Manual time window</option>
+          </select>
+          <div id="manualWindow" style="display:none">
+            <label>Window &mdash; oldest / newest (parsed as UTC when the axis is UTC)</label>
+            <div class="row">
+              <div><input type="datetime-local" id="tStart"></div>
+              <div><input type="datetime-local" id="tEnd"></div>
+            </div>
+          </div>
+          <label class="chk"><input type="checkbox" id="utcAxis" checked> Time axis &amp; timestamps in UTC</label>
+        </div>
+        <div class="note" id="calInfo">Load an image to calibrate.</div>
+        <div class="note">The TOP edge of the plot must match this instant. If the file was generated
+        before you saved it, enter the generation time, not the save time.</div>
+      </div>
+
+      <div class="panel adv-only">
+        <h2>Plot area &amp; column structure</h2>
+        <div class="row">
+          <div><label>X0</label><input type="number" id="x0" value="0"></div>
+          <div><label>Y0</label><input type="number" id="y0" value="0"></div>
+          <div><label>X1</label><input type="number" id="x1" value="0"></div>
+          <div><label>Y1</label><input type="number" id="y1" value="0"></div>
+        </div>
+        <button class="btn-secondary" onclick="startPick()">Select area on canvas (drag)</button>
+        <button class="btn-secondary" onclick="autoDetectArea()">Auto-detect area + columns</button>
+        <label class="chk"><input type="checkbox" id="useAutoCols" checked> Use auto-detected column structure (recommended)</label>
+        <button class="btn-secondary" onclick="redetectColumns()">Re-detect column structure</button>
+        <div class="note" id="colInfo">Columns not detected yet.</div>
+        <label>Column overrides (hard switches) &mdash; e.g. <code>on:19,20 dark:21-23</code></label>
+        <input type="text" id="colOverride" placeholder="on:19,20 dark:21-23">
+        <div class="note">
+          A band is dark when the PEAK pixel-column activity inside it is near zero (true black gap);
+          dashed traces keep the band active. Overrides are hard switches applied everywhere:
+          <code>on:N</code> forces the station present (bypasses the presence gates),
+          <code>dark:N</code> forces NO SIGNAL. Formats: <code>19</code>, <code>19-23</code>,
+          <code>19,20</code> (commas, spaces and + are all accepted).
+        </div>
+      </div>
+
+      <div class="panel adv-only">
+        <h2>Detection (noise &amp; day/night robust)</h2>
+        <label class="chk"><input type="checkbox" id="colorMode" checked> Colored trace (ignore white/gray pixels)</label>
+        <label class="chk"><input type="checkbox" id="invertDetect"> Inverted: dark trace on light background</label>
+        <div class="row">
+          <div><label>Saturation thr.</label><input type="number" id="satTh" value="40" min="0" max="255"></div>
+          <div><label>Value thr.</label><input type="number" id="valTh" value="60" min="0" max="255"></div>
+        </div>
+        <div class="row">
+          <div><label>Streak width (px, anti-speckle)</label><input type="number" id="streakW" value="3" min="1" max="20"></div>
+          <div><label>Temporal median (rows)</label><input type="number" id="medWindow" value="5" min="1" max="31" step="2"></div>
+        </div>
+        <div class="row">
+          <div><label>Row step (1 = all)</label><input type="number" id="rowStep" value="1" min="1"></div>
+          <div><label>Min OFF duration (min)</label><input type="number" id="minOffMin" value="30" min="0"></div>
+        </div>
+        <label>ON threshold &mdash; fraction of station peak</label>
+        <input type="number" id="thrFrac" value="0.12" min="0.01" max="1" step="0.01">
+        <div class="row">
+          <div><label>Absolute floor &times;typical peak</label><input type="number" id="absFloor" value="0.04" min="0" max="1" step="0.01"></div>
+          <div><label>Noise floor mult. (&times;row noise)</label><input type="number" id="noiseK" value="3" min="0" step="0.5"></div>
+        </div>
+        <div class="row">
+          <div><label>Presence gate (peak/typical)</label><input type="number" id="gate" value="0.12" min="0.01" max="1" step="0.01"></div>
+          <div><label>Min duty after 1st ON</label><input type="number" id="minDuty" value="0.06" min="0.01" max="1" step="0.01"></div>
+        </div>
+        <label class="chk"><input type="checkbox" id="ndTrim" checked> Before a station's first signal = "no data" (ND, not OFF)</label>
+        <label class="chk"><input type="checkbox" id="showMask"> Show detection mask (green=ON, red=OFF, blue=ND)</label>
+        <div class="note">
+          A station is flagged NO SIGNAL if its peak is below the presence gate OR its duty cycle
+          after the first ON is below "Min duty" (real stations: 30&ndash;100%; neighbor bleed: a few %).
+          Overrides <code>on:</code>/<code>dark:</code> bypass these gates.
+        </div>
+      </div>
+
+      <div class="panel adv-only">
+        <h2>Night shading (solar)</h2>
+        <label class="chk"><input type="checkbox" id="nightShade" checked> Shade night hours on the timeline</label>
+        <div class="row">
+          <div><label>Receiver latitude</label><input type="text" id="siteLat" value="48.1"></div>
+          <div><label>Receiver longitude</label><input type="text" id="siteLon" value="11.6"></div>
+        </div>
+        <div class="note">Night = sun elevation &lt; &minus;6&deg; at the receiver site (default: DL0AO Munich).</div>
+      </div>
+
+      <div class="panel">
+        <h2>Track list (one per column, left &rarr; right)</h2>
+        <details id="trackDetails">
+          <summary>Show / edit track list</summary>
+          <textarea id="tracks" spellcheck="false">GPS control (ALS162 40pps)
+Anthorn 6731M 1195km
+Anthorn 6731Y 1195km
+Bryansk 8000M 1657km
+Petrozavodsk 8000W 1929km
+Slonim 8000X 1032km
+Simferopol 8000Y 1742km
+Syzran 8000Z 2538km
+Afif 8830M 3923km
+Salwa 8830W 4319km
+Ash Shaykh H. 8830Y 3067km
+Al Muwassam 8830Z 4605km
+Kotelnikovo 5990M 2305km
+Poltavskaya 5990X 2029km
+Astrakhan 5990Y 2694km
+Balashov 5990Z 2223km
+Inta 5960M 3304km
+Tumanny Pen 5960X 2538km
+Norilsk 5960Z 4416km
+Yuzhno-Uralsk 5970M 3381km
+Yekaterinburg 5970X 3289km
+Orsk 5970Z 3281km
+Nagqu 6250M 6757km
+Pucheng 6000M 7660km
+Hexian 6780M 8700km
+Raoping 6780X 9061km
+Chongzuo 6780Y 8514km
+Xuancheng 8390M 8559km
+Raoping 8390X 9061km
+Rongcheng 8390Y 8248km
+Rongcheng 7430M 8248km
+Pucheng 7430X 8559km
+Helong 7430Y 8115km
+Pohang 9930M 8709km
+Kwang Ju 9930W 8660km
+Ussuriisk 9930Z 8076km
+Aleksandrovsk 7950M 7933km
+Petropavlovsk 7950W 8194km
+Ussuriisk 7950X 8076km
+George 5990N 8341km
+Fallon 5990O 9025km
+Havre 5990P 7785km</textarea>
+        </details>
+        <div class="note" id="trackCount"></div>
+      </div>
+
+      <button class="btn-primary" onclick="analyze()">&#9654; ANALYZE IMAGE</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <!-- ══════════ RIGHT: PREVIEW + RESULTS ══════════ -->
+    <div>
+      <div class="panel">
+        <h2>Preview (band numbers = track lines; orange = dark column)</h2>
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="mainCanvas"></canvas>
+          <div id="pickHint"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="resultsPanel" style="display:none">
+        <h2>Results</h2>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('heatmap',this)">Timeline heatmap</button>
+          <button class="tab-btn" onclick="showTab('summary',this)">Summary</button>
+          <button class="tab-btn" onclick="showTab('off',this)">OFF periods</button>
+          <button class="tab-btn" onclick="showTab('full',this)">Full data</button>
+          <button class="tab-btn" id="maskBtn" onclick="toggleMask()" title="Overlay the detection result on the original image">Verify on image</button>
+        </div>
+
+        <div class="tab-content active" id="tab-heatmap">
+          <div class="chart-container"><canvas id="chartCanvas"></canvas></div>
+          <div class="legend">
+            <span><span class="sw" style="background:rgba(70,100,200,0.5)"></span>night (sun &lt; &minus;6&deg;)</span>
+            <span><span class="sw" style="background:#8b949e"></span>midnight UTC + day number</span>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-summary">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Station</th><th>Status</th><th>Col act</th><th>Col max</th><th>First ON</th><th>Duty</th><th>ON %</th><th>Gaps</th><th>Total OFF</th><th>Peak</th></tr></thead>
+              <tbody id="summaryBody"></tbody>
+            </table>
+          </div>
+          <div class="note">
+            <b>Col act</b> = mean activity of the band (dashed traces score low); <b>Col max</b> =
+            peak pixel-column activity inside the band (dashed traces score high; black &asymp; 0&ndash;2%).
+            Dark/active is decided on <b>Col max</b>. <b>Duty</b> = ON fraction after First ON.
+            <b>OK* / DARK*</b> = forced by column overrides.
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-off">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Station</th><th>OFF from</th><th>OFF to</th><th>Duration</th></tr></thead>
+              <tbody id="offBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-content" id="tab-full">
+          <div class="note" id="fullNote"></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Timestamp</th><th>Station</th><th>State</th></tr></thead>
+              <tbody id="fullBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="export-bar">
+          <button class="btn-export" onclick="exportOffCSV()">&#11015; OFF periods CSV</button>
+          <button class="btn-export" onclick="exportFullCSV()">&#11015; Full data CSV</button>
+          <button class="btn-export" onclick="exportMetricCSV()">&#11015; Signal metric CSV</button>
+          <button class="btn-export" onclick="exportJSON()">&#11015; JSON</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="chartTip"></div>
+
+<script>
+"use strict";
+
+/* ═══════════════ GLOBAL STATE ═══════════════ */
+let img = null;
+let imageData = null;
+let pickMode = false;
+let pickStart = null;
+let analysis = null;
+let maskOn = false;
+let columnMap = null;      // [{x0,x1,gap,act,actMax,runId,forced}] absolute pixel bands
+let colWarnMsg = "";
+
+const $ = id => document.getElementById(id);
+const CHART_COLORS = ["#58a6ff","#7ee787","#f0883e","#d2a8ff","#f85149","#79c0ff","#56d364","#e3b341"];
+const NIGHT_ELEV = -6;
+
+/* ═══════════════ HELPERS ═══════════════ */
+function setStatus(msg, type) {
+  const el = $("status");
+  el.textContent = msg;
+  el.className = "status " + type;
+}
+const p2 = n => String(n).padStart(2, "0");
+const utcOn = () => $("utcAxis").checked;
+
+function fmtTime(ms) {
+  const d = new Date(ms), u = utcOn();
+  const Y  = u ? d.getUTCFullYear()  : d.getFullYear();
+  const Mo = u ? d.getUTCMonth()     : d.getMonth();
+  const D  = u ? d.getUTCDate()      : d.getDate();
+  const H  = u ? d.getUTCHours()     : d.getHours();
+  const Mi = u ? d.getUTCMinutes()   : d.getMinutes();
+  const S  = u ? d.getUTCSeconds()   : d.getSeconds();
+  return `${Y}-${p2(Mo+1)}-${p2(D)} ${p2(H)}:${p2(Mi)}:${p2(S)}`;
+}
+function fmtShort(ms) {
+  const d = new Date(ms), u = utcOn();
+  const Mo = u ? d.getUTCMonth()   : d.getMonth();
+  const D  = u ? d.getUTCDate()    : d.getDate();
+  const H  = u ? d.getUTCHours()   : d.getHours();
+  const Mi = u ? d.getUTCMinutes() : d.getMinutes();
+  return `${p2(Mo+1)}-${p2(D)} ${p2(H)}:${p2(Mi)}`;
+}
+function fmtDur(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 120) return s + " s";
+  const m = Math.round(s / 60);
+  if (m < 120) return m + " min";
+  const h = m / 60;
+  if (h < 48) return Math.floor(h) + " h " + p2(m % 60) + " min";
+  return Math.floor(h / 24) + " d " + Math.floor(h % 24) + " h";
+}
+function parseManual(v) {
+  if (!v) return null;
+  const d = utcOn() ? new Date(v + ":00Z") : new Date(v);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+function dlMs() {
+  const v = $("dlTime").value;
+  if (!v) return null;
+  const d = $("dlAsUTC").checked ? new Date(v + ":00Z") : new Date(v);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+function startMs() {
+  const v = $("exStart").value;
+  if (!v) return null;
+  const d = new Date(v + ":00Z");
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+function msToLocalInput(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+function msToUTCInput(ms) {
+  return new Date(ms).toISOString().slice(0, 16);
+}
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+function download(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function percentile(sorted, p) {
+  if (!sorted.length) return 0;
+  const i = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
+  return sorted[i];
+}
+function compressRanges(arr) {   // [20,21,22,23] -> "20–23"
+  if (!arr.length) return "none";
+  const out = [];
+  let s = arr[0], prev = arr[0];
+  for (let i = 1; i <= arr.length; i++) {
+    const v = arr[i];
+    if (v !== prev + 1) {
+      out.push(s === prev ? String(s) : s + "–" + prev);
+      s = v;
+    }
+    prev = v;
+  }
+  return out.join(", ");
+}
+
+/* Solar elevation (NOAA-style approximation), degrees */
+function sunElevationDeg(ms, latDeg, lonDeg) {
+  const d = new Date(ms);
+  let Y = d.getUTCFullYear(), M = d.getUTCMonth() + 1;
+  const D = d.getUTCDate() + (d.getUTCHours() + d.getUTCMinutes()/60 + d.getUTCSeconds()/3600) / 24;
+  if (M <= 2) { Y -= 1; M += 12; }
+  const A = Math.floor(Y / 100), B = 2 - A + Math.floor(A / 4);
+  const jd = Math.floor(365.25 * (Y + 4716)) + Math.floor(30.6001 * (M + 1)) + D + B - 1524.5;
+  const n = jd - 2451545.0;
+  const L  = (280.460 + 0.9856474 * n) * Math.PI / 180;
+  const g  = (357.528 + 0.9856003 * n) * Math.PI / 180;
+  const lam = L + (1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * Math.PI / 180;
+  const eps = (23.439 - 0.0000004 * n) * Math.PI / 180;
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lam));
+  const ra  = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam));
+  const gmst = (18.697374558 + 24.06570982441908 * n) * 15 * Math.PI / 180;
+  let ha = gmst + lonDeg * Math.PI / 180 - ra;
+  ha = Math.atan2(Math.sin(ha), Math.cos(ha));
+  const lat = latDeg * Math.PI / 180;
+  return Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(ha)) * 180 / Math.PI;
+}
+
+/* ═══════════════ MODE SWITCH ═══════════════ */
+function setMode(m) {
+  document.body.classList.toggle("mode-simple", m === "simple");
+  document.body.classList.toggle("mode-advanced", m === "advanced");
+  $("modeSimple").classList.toggle("active", m === "simple");
+  $("modeAdvanced").classList.toggle("active", m === "advanced");
+  $("trackDetails").open = (m === "advanced");
+  try { localStorage.setItem("loranMode", m); } catch (e) {}
+  if (img) resetView();
+  updateCalibrationInfo();
+}
+
+/* ═══════════════ TRACK LIST ═══════════════ */
+function getTrackNames() {
+  return $("tracks").value.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+}
+function updateTrackCount() {
+  $("trackCount").textContent = getTrackNames().length +
+    " track(s) — line order = image column order, left to right";
+}
+ $("tracks").addEventListener("input", updateTrackCount);
+
+/* ═══════════════ IMAGE LOADING ═══════════════ */
+ $("dropzone").addEventListener("click", () => $("fileInput").click());
+ $("fileInput").addEventListener("change", e => { if (e.target.files[0]) loadImageFile(e.target.files[0]); });
+ $("dropzone").addEventListener("dragover", e => { e.preventDefault(); $("dropzone").classList.add("dragover"); });
+ $("dropzone").addEventListener("dragleave", () => $("dropzone").classList.remove("dragover"));
+ $("dropzone").addEventListener("drop", e => {
+  e.preventDefault();
+  $("dropzone").classList.remove("dragover");
+  if (e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+});
+
+function loadImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    img = new Image();
+    img.onload = () => {
+      const c = $("mainCanvas");
+      c.width = img.width;
+      c.height = img.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      imageData = ctx.getImageData(0, 0, img.width, img.height);
+      $("imgInfo").textContent = "Loaded: " + img.width + " × " + img.height + " px";
+      analysis = null; maskOn = false;
+      $("resultsPanel").style.display = "none";
+      $("x0").value = 0; $("y0").value = 0;
+      $("x1").value = img.width; $("y1").value = img.height;
+      if (file.lastModified > 0) $("dlTime").value = msToLocalInput(file.lastModified);
+      const det = smartAutoDetect();
+      updateCalibrationInfo();
+      setStatus("Image loaded. Plot area auto-detected" +
+        (det ? " (x " + det.left + "–" + (det.right + 1) + ", y " + det.top + "–" + (det.bot + 1) + ")" : "") +
+        ". Verify the column numbers on the preview, then ANALYZE.", "success");
+    };
+    img.onerror = () => setStatus("Failed to load the image.", "error");
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ═══════════════ AREA HANDLING ═══════════════ */
+function getArea() {
+  let x0 = parseInt($("x0").value, 10) || 0;
+  let y0 = parseInt($("y0").value, 10) || 0;
+  let x1 = parseInt($("x1").value, 10) || 0;
+  let y1 = parseInt($("y1").value, 10) || 0;
+  if (x1 < x0) { const t = x0; x0 = x1; x1 = t; }
+  if (y1 < y0) { const t = y0; y0 = y1; y1 = t; }
+  if (imageData) {
+    const W = imageData.width, H = imageData.height;
+    x0 = Math.max(0, Math.min(x0, W - 1)); x1 = Math.max(x0 + 1, Math.min(x1, W));
+    y0 = Math.max(0, Math.min(y0, H - 1)); y1 = Math.max(y0 + 1, Math.min(y1, H));
+  }
+  return { x0, y0, x1, y1 };
+}
+
+function resetView() {
+  if (!img) return;
+  const c = $("mainCanvas");
+  const ctx = c.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0);
+  drawAreaOverlay();
+}
+
+function drawAreaOverlay() {
+  if (!img) return;
+  const ctx = $("mainCanvas").getContext("2d");
+  const a = getArea();
+  const names = getTrackNames();
+  const n = names.length;
+  ctx.save();
+  ctx.strokeStyle = "#4da3ff";
+  ctx.lineWidth = Math.max(1, Math.round(img.width / 700));
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(a.x0, a.y0, a.x1 - a.x0, a.y1 - a.y0);
+  ctx.setLineDash([]);
+  const bands = bandsFor(n, a);
+  if (bands) {
+    ctx.font = "9px monospace";
+    ctx.lineWidth = 1;
+    const labelEvery = (a.x1 - a.x0) / n < 13 ? 5 : 1;
+    for (let i = 0; i < n; i++) {
+      const bx0 = bands[i][0], bx1 = bands[i][1];
+      const isGap = columnMap && columnMap.length === n && columnMap[i].gap;
+      if (isGap) {
+        ctx.fillStyle = "rgba(255,159,26,0.12)";
+        ctx.fillRect(bx0, a.y0, bx1 - bx0, a.y1 - a.y0);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,0.30)";
+      ctx.beginPath();
+      ctx.moveTo(bx0 - 0.5, a.y0); ctx.lineTo(bx0 - 0.5, a.y1);
+      ctx.moveTo(bx1 - 0.5, a.y0); ctx.lineTo(bx1 - 0.5, a.y1);
+      ctx.stroke();
+      if (i % labelEvery === 0) {
+        ctx.fillStyle = isGap ? "#ff9f1a" : "#ffd24d";
+        ctx.fillText(String(i + 1), bx0 + 1, a.y0 + 10);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/* --- manual area picking (drag, advanced) --- */
+function startPick() {
+  if (!img) { setStatus("Load an image first.", "error"); return; }
+  pickMode = true;
+  pickStart = null;
+  const h = $("pickHint");
+  h.textContent = "Pick mode: click and drag on the image to define the plot area.";
+  h.style.display = "block";
+}
+function canvasPos(e) {
+  const r = $("mainCanvas").getBoundingClientRect();
+  return {
+    x: Math.round((e.clientX - r.left) * $("mainCanvas").width / r.width),
+    y: Math.round((e.clientY - r.top) * $("mainCanvas").height / r.height)
+  };
+}
+ $("mainCanvas").addEventListener("mousedown", e => {
+  if (!pickMode) return;
+  pickStart = canvasPos(e);
+});
+ $("mainCanvas").addEventListener("mousemove", e => {
+  if (!pickMode || !pickStart) return;
+  const p = canvasPos(e);
+  resetView();
+  const ctx = $("mainCanvas").getContext("2d");
+  ctx.strokeStyle = "#ff5252";
+  ctx.setLineDash([5, 3]);
+  ctx.strokeRect(pickStart.x, pickStart.y, p.x - pickStart.x, p.y - pickStart.y);
+  ctx.setLineDash([]);
+});
+window.addEventListener("mouseup", e => {
+  if (!pickMode || !pickStart) return;
+  const p = canvasPos(e);
+  $("x0").value = Math.min(pickStart.x, p.x);
+  $("y0").value = Math.min(pickStart.y, p.y);
+  $("x1").value = Math.max(pickStart.x, p.x);
+  $("y1").value = Math.max(pickStart.y, p.y);
+  pickMode = false;
+  pickStart = null;
+  $("pickHint").style.display = "none";
+  buildColumnMap();
+  resetView();
+  updateCalibrationInfo();
+  setStatus("Area set. Verify the column numbers on the preview match the tracks.", "success");
+});
+
+/* ═══════════════════════════════════════════════════════════
+   COLUMN STRUCTURE DETECTION
+   Positions: global uniform-grid fit (origin + j·pitch).
+   Dark/active: PEAK pixel-column activity inside the band —
+   a dashed vertical trace gives a high max on its 2-3 px;
+   a true black gap stays near zero on every column.
+   ═══════════════════════════════════════════════════════════ */
+function computeProfile(a) {
+  const W = imageData.width, d = imageData.data;
+  const w = a.x1 - a.x0;
+  const act = new Float64Array(w);
+  const step = Math.max(1, Math.floor((a.y1 - a.y0) / 1500));
+  let rows = 0;
+  for (let y = a.y0; y < a.y1; y += step) {
+    rows++;
+    const off = y * W * 4;
+    for (let x = 0; x < w; x++) {
+      const p = off + (a.x0 + x) * 4;
+      const r = d[p], g = d[p+1], b = d[p+2];
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      if (mx > 60 && (mx - mn) > 45) act[x]++;
+    }
+  }
+  for (let x = 0; x < w; x++) act[x] /= rows;
+  return act;
+}
+
+function findRuns(act, thr, bridge, minRun) {
+  const w = act.length;
+  const runs = [];
+  let s = -1;
+  for (let x = 0; x < w; x++) {
+    const on = act[x] > thr;
+    if (on && s < 0) s = x;
+    if (!on && s >= 0) { runs.push({ s, e: x }); s = -1; }
+  }
+  if (s >= 0) runs.push({ s, e: w });
+  const merged = [];
+  for (const r of runs) {
+    if (merged.length && r.s - merged[merged.length - 1].e < bridge)
+      merged[merged.length - 1].e = r.e;
+    else
+      merged.push({ s: r.s, e: r.e });
+  }
+  return merged.filter(r => r.e - r.s >= minRun);
+}
+
+/* Fit a uniform grid: origin + j·pitch, j = 0..N-1 (positions only). */
+function tryUniformFit(act, N, thrAct) {
+  const w = act.length;
+  const p0w = w / N;
+  const bridge = Math.max(2, Math.round(p0w * 0.12));
+  const minRun = Math.max(2, Math.round(p0w * 0.22));
+  let runs = findRuns(act, thrAct, bridge, minRun);
+  if (!runs.length) return { ok: false, why: "no active block found" };
+
+  let p0 = (runs[runs.length - 1].e - runs[0].s) / N;
+  if (!(p0 > 1.5)) return { ok: false, why: "area too narrow" };
+
+  for (let iter = 0; iter < 6; iter++) {
+    const kept = runs.filter(r => {
+      const W = r.e - r.s;
+      const k = Math.max(1, Math.round(W / p0));
+      return Math.abs(W - k * p0) <= 0.30 * p0;
+    });
+    if (kept.length === runs.length) break;
+    if (kept.length < 1) return { ok: false, why: "all blocks rejected as outliers" };
+    runs = kept;
+    p0 = (runs[runs.length - 1].e - runs[0].s) / N;
+  }
+
+  const x00 = runs[0].s;
+  let best = null;
+  const pStep = Math.max(0.002, p0 / 1200);
+  const xStep = Math.max(0.25, p0 / 60);
+  for (let p = p0 * 0.965; p <= p0 * 1.035; p += pStep) {
+    for (let x0 = x00 - 0.3 * p0; x0 <= x00 + 0.3 * p0 + xStep; x0 += xStep) {
+      let ss = 0, bad = false, prevR = -1;
+      for (const r of runs) {
+        const nL = Math.round((r.s - x0) / p);
+        const nR = Math.round((r.e - x0) / p);
+        if (nR - nL < 1 || nL < 0 || nR > N || nL <= prevR) { bad = true; break; }
+        prevR = nR;
+        const dL = r.s - (x0 + nL * p), dR = r.e - (x0 + nR * p);
+        ss += dL * dL + dR * dR;
+      }
+      if (bad) continue;
+      if (!best || ss < best.ss) best = { ss, p, x0 };
+    }
+  }
+  if (!best) return { ok: false, why: "no consistent grid" };
+
+  const nEdges = runs.length * 2;
+  const rms = Math.sqrt(best.ss / Math.max(1, nEdges));
+  if (rms > 0.22 * best.p)
+    return { ok: false, why: "edge RMS " + rms.toFixed(1) + " px too large (pitch " + best.p.toFixed(1) + ")" };
+
+  const activeCols = new Array(N).fill(0);
+  let prev = -1;
+  for (const r of runs) {
+    const nL = Math.round((r.s - best.x0) / best.p);
+    const nR = Math.round((r.e - best.x0) / best.p);
+    if (nL < 0 || nR > N || nR - nL < 1 || nL <= prev)
+      return { ok: false, why: "inconsistent block indices" };
+    for (let j = nL; j < nR; j++) activeCols[j] = 1;
+    prev = nR;
+  }
+  return { ok: true, origin: best.x0, pitch: best.p, rms, activeCols, runs };
+}
+
+/* DP fallback: choose counts k_i per region minimizing Σ (w_i - k_i·p)², Σ k_i = N */
+function allocateColumns(regions, N, p) {
+  const R = regions.length;
+  const INF = 1e18;
+  const kmin = regions.map(r => r.type === "run" ? 1 : 0);
+  const kmax = regions.map((r, i) =>
+    Math.max(kmin[i], Math.min(N, Math.floor(r.w / (p * 0.6)) + 1)));
+  const dp = Array.from({ length: R + 1 }, () => new Array(N + 1).fill(INF));
+  const ch = Array.from({ length: R + 1 }, () => new Array(N + 1).fill(-1));
+  dp[0][0] = 0;
+  for (let i = 0; i < R; i++) {
+    for (let s = 0; s <= N; s++) {
+      const cur = dp[i][s];
+      if (cur === INF) continue;
+      for (let k = kmax[i]; k >= kmin[i]; k--) {
+        if (s + k > N) continue;
+        const d = regions[i].w - k * p;
+        const c = cur + d * d;
+        if (c < dp[i + 1][s + k]) { dp[i + 1][s + k] = c; ch[i + 1][s + k] = k; }
+      }
+    }
+  }
+  if (dp[R][N] >= INF) return null;
+  const counts = new Array(R).fill(0);
+  let s = N;
+  for (let i = R; i >= 1; i--) { counts[i - 1] = ch[i][s]; s -= counts[i - 1]; }
+  return counts;
+}
+
+/* ── manual column overrides: "on:19,20 dark:21-23" (hard switches) ── */
+function addRanges(str, set) {
+  for (const part of String(str).split(/[+,;\s]+/)) {
+    const mm = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+    if (!mm) continue;
+    const a = +mm[1], b = mm[2] ? +mm[2] : a;
+    for (let v = Math.min(a, b); v <= Math.max(a, b); v++) if (v >= 1) set.add(v);
+  }
+}
+function parseOverrides() {
+  const s = ($("colOverride").value || "").trim();
+  if (!s) return null;
+  const out = { on: new Set(), dark: new Set() };
+  const tokens = s.split(/[,\s]+/);
+  let mode = null;
+  for (const t of tokens) {
+    if (!t) continue;
+    const m = t.match(/^(on|active|dark|off)\s*:\s*(.*)$/i);
+    if (m) {
+      mode = /^(on|active)$/i.test(m[1]) ? "on" : "dark";
+      if (m[2]) addRanges(m[2], out[mode]);
+    } else if (mode) {
+      addRanges(t, out[mode]);
+    }
+  }
+  return out;
+}
+function applyOverrides(map) {
+  const ov = parseOverrides();
+  if (!ov) return [];
+  const changed = [];
+  map.forEach((b, i) => {
+    const t = i + 1;
+    if (ov.dark.has(t)) {
+      if (!b.gap) changed.push("dark:" + t);
+      b.gap = true; b.forced = "dark";
+    } else if (ov.on.has(t)) {
+      if (b.gap) changed.push("on:" + t);
+      b.gap = false; b.forced = "on";
+    } else {
+      b.forced = null;
+    }
+  });
+  return changed;
+}
+
+function buildColumnMap() {
+  $("colInfo").textContent = "Columns not detected yet.";
+  columnMap = null;
+  colWarnMsg = "";
+  if (!imageData) return null;
+  const names = getTrackNames();
+  const N = names.length;
+  if (N < 1) return null;
+  const a = getArea();
+  const w = a.x1 - a.x0;
+  if (w < N) return null;
+
+  const act = computeProfile(a);
+  const sorted = Array.from(act).sort((x, y) => x - y);
+  const p90 = percentile(sorted, 0.90);
+  const thrAct = Math.max(0.03, 0.10 * p90);   // for run segmentation (grid fit)
+  const thrGapMax = Math.max(0.08, 0.20 * p90); // PEAK-based dark threshold for bands
+
+  /* ── PRIMARY: uniform grid fit ── */
+  const fit = tryUniformFit(act, N, thrAct);
+  if (fit.ok) {
+    const map = [];
+    for (let j = 0; j < N; j++) {
+      const bx0 = a.x0 + j * fit.pitch;
+      const bx1 = a.x0 + (j + 1) * fit.pitch;
+      const b0 = Math.max(0, Math.round(bx0 - a.x0));
+      const b1 = Math.min(w, Math.round(bx1 - a.x0));
+      let s = 0, c = 0, bmax = 0;
+      for (let x = b0; x < b1; x++) { s += act[x]; c++; if (act[x] > bmax) bmax = act[x]; }
+      const bandAct = c ? s / c : 0;
+      map.push({
+        x0: bx0, x1: bx1,
+        gap: bmax < thrGapMax,          // PEAK-based: dashed traces stay active
+        runId: fit.activeCols[j] ? 1 : -1,
+        act: bandAct, actMax: bmax, forced: null
+      });
+    }
+    const ovCh = applyOverrides(map);
+    columnMap = map;
+    const darkIdx = [];
+    map.forEach((b, i) => { if (b.gap) darkIdx.push(i + 1); });
+    $("colInfo").textContent =
+      "Uniform grid fit OK: pitch ≈ " + fit.pitch.toFixed(2) + " px, edge RMS ≈ " +
+      fit.rms.toFixed(2) + " px, " + fit.runs.length + " active block(s). " +
+      "Dark columns: " + compressRanges(darkIdx) + " (peak threshold " +
+      (100 * thrGapMax).toFixed(1) + "%)." +
+      (ovCh && ovCh.length ? " Overrides applied: " + ovCh.join(", ") + "." : "");
+    resetView();
+    return map;
+  }
+
+  /* ── FALLBACK: per-region DP allocation ── */
+  const p0 = w / N;
+  const bridge = Math.max(3, Math.round(p0 * 0.15));
+  const minRun = Math.max(3, Math.round(p0 * 0.25));
+  const runs = findRuns(act, thrAct, bridge, minRun);
+  if (!runs.length) {
+    $("colInfo").textContent = "No active column found — check the area. (" + (fit.why || "") + ")";
+    return null;
+  }
+  const regions = [];
+  for (let i = 0; i < runs.length; i++) {
+    if (i > 0) {
+      const g0 = runs[i - 1].e, g1 = runs[i].s;
+      if (g1 > g0) regions.push({ x0: g0, x1: g1, w: g1 - g0, type: "gap" });
+    }
+    regions.push({ x0: runs[i].s, x1: runs[i].e, w: runs[i].e - runs[i].s, type: "run" });
+  }
+  const sumW = regions.reduce((s, r) => s + r.w, 0);
+  const p = sumW / N;
+  const counts = allocateColumns(regions, N, p);
+  if (!counts) {
+    $("colInfo").textContent = "Column allocation failed — too many fragments; check the area.";
+    return null;
+  }
+  const map = [];
+  let track = 0;
+  for (let i = 0; i < regions.length && track < N; i++) {
+    const r = regions[i], cnt = counts[i];
+    for (let k = 0; k < cnt && track < N; k++) {
+      map.push({
+        x0: a.x0 + r.x0 + k * ((r.x1 - r.x0) / cnt),
+        x1: a.x0 + r.x0 + (k + 1) * ((r.x1 - r.x0) / cnt),
+        gap: r.type === "gap",
+        runId: r.type === "run" ? i : -1,
+        act: 0, actMax: 0, forced: null
+      });
+      track++;
+    }
+  }
+  while (track < N) {
+    const last = map[map.length - 1];
+    const wd = last ? (last.x1 - last.x0) : p0;
+    const xs = last ? last.x1 : a.x0;
+    map.push({ x0: xs, x1: xs + wd, gap: true, runId: -1, act: 0, actMax: 0, forced: null });
+    track++;
+  }
+  for (const b of map) {
+    const bx0 = Math.max(0, Math.round(b.x0 - a.x0));
+    const bx1 = Math.min(w, Math.round(b.x1 - a.x0));
+    let s = 0, c = 0, bmax = 0;
+    for (let x = bx0; x < bx1; x++) { s += act[x]; c++; if (act[x] > bmax) bmax = act[x]; }
+    b.act = c ? s / c : 0;
+    b.actMax = bmax;
+  }
+  const ovCh2 = applyOverrides(map);
+  columnMap = map;
+  const darkIdx2 = [];
+  map.forEach((b, i) => { if (b.gap) darkIdx2.push(i + 1); });
+  $("colInfo").textContent =
+    "FALLBACK (region allocation; grid fit failed: " + (fit.why || "?") + "). " +
+    "Dark columns: " + compressRanges(darkIdx2) + ". Verify alignment on the preview!" +
+    (ovCh2 && ovCh2.length ? " Overrides applied: " + ovCh2.join(", ") + "." : "");
+  colWarnMsg = "grid fit failed, using fallback allocation";
+  resetView();
+  return map;
+}
+
+function bandsFor(n, a) {
+  if ($("useAutoCols").checked && columnMap && columnMap.length === n) {
+    return columnMap.map(c => {
+      const inset = Math.max(0, Math.round((c.x1 - c.x0) * 0.10));
+      return [Math.round(c.x0) + inset, Math.max(Math.round(c.x0) + inset + 1, Math.round(c.x1) - inset)];
+    });
+  }
+  if (!a) return null;
+  const bw = (a.x1 - a.x0) / n;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const inset = Math.max(0, Math.round(bw * 0.05));
+    out.push([Math.round(a.x0 + i * bw) + inset, Math.round(a.x0 + (i + 1) * bw) - inset]);
+  }
+  return out;
+}
+
+/* --- area auto-detect (frame trim) --- */
+function smartAutoDetect() {
+  if (!imageData) return null;
+  const W = imageData.width, H = imageData.height, d = imageData.data;
+  const P = (x, y) => (y * W + x) * 4;
+
+  let bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+  {
+    const p = P(2, 2), r = d[p], g = d[p+1], b = d[p+2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mx > 40 && (mx - mn) > 25) {
+      const br = r, bg = g, bb = b;
+      const isB = (x, y) => { const q = P(x, y);
+        return Math.abs(d[q] - br) + Math.abs(d[q+1] - bg) + Math.abs(d[q+2] - bb) < 60; };
+      const rowB = y => { let c = 0; for (let x = bx0; x <= bx1; x++) if (isB(x, y)) c++;
+                          return c > (bx1 - bx0 + 1) * 0.9; };
+      const colB = x => { let c = 0; for (let y = by0; y <= by1; y++) if (isB(x, y)) c++;
+                          return c > (by1 - by0 + 1) * 0.9; };
+      while (by0 < by1 && rowB(by0)) by0++;
+      while (by1 > by0 && rowB(by1)) by1--;
+      while (bx0 < bx1 && colB(bx0)) bx0++;
+      while (bx1 > bx0 && colB(bx1)) bx1--;
+      if (bx1 - bx0 < W * 0.2 || by1 - by0 < H * 0.2) {
+        bx0 = 0; by0 = 0; bx1 = W - 1; by1 = H - 1;
+      }
+    }
+  }
+  $("x0").value = bx0; $("y0").value = by0;
+  $("x1").value = bx1 + 1; $("y1").value = by1 + 1;
+
+  buildColumnMap();
+  resetView();
+  return { left: bx0, right: bx1, top: by0, bot: by1 };
+}
+
+function autoDetectArea() {
+  const r = smartAutoDetect();
+  if (!r) { setStatus("Load an image first.", "error"); return; }
+  updateCalibrationInfo();
+  setStatus("Auto-detected area: x " + r.left + "–" + (r.right + 1) +
+            ", y " + r.top + "–" + (r.bot + 1) + ". Verify column numbers on the preview.", "info");
+}
+
+function redetectColumns() {
+  if (!imageData) { setStatus("Load an image first.", "error"); return; }
+  const m = buildColumnMap();
+  setStatus(m ? ("Column structure re-detected (" + m.length + " bands, " +
+                 m.filter(x => x.gap).length + " dark).")
+              : "Column detection failed — check the area.", m ? "success" : "error");
+}
+
+ $("colOverride").addEventListener("change", () => {
+  if (!imageData) return;
+  buildColumnMap();
+});
+
+/* ═══════════════ TIME MAPPER ═══════════════ */
+function buildMapper() {
+  const a = getArea();
+  if ($("calSource").value === "manual") {
+    const t0 = parseManual($("tStart").value), t1 = parseManual($("tEnd").value);
+    if (t0 === null || t1 === null || t1 <= t0) return null;
+    const up = $("newestAtTop").checked;
+    const h = Math.max(1, a.y1 - a.y0);
+    return { f: y => { const fr = (y - a.y0) / h; return up ? t1 - (t1 - t0) * fr : t0 + (t1 - t0) * fr; },
+             desc: "manual window" };
+  }
+  const tBot = startMs(), tTop = dlMs();
+  if (tBot === null || tTop === null) return null;
+  if (tTop <= tBot) return { err: "Grab time must be AFTER the extract start (" +
+    new Date(tBot).toISOString().slice(0, 16).replace("T", " ") + " UTC)." };
+  const up = $("newestAtTop").checked;
+  const yTop = a.y0, yBot = a.y1 - 1;
+  const desc = "extract start " + new Date(tBot).toISOString().slice(0, 16).replace("T", " ") +
+               " UTC (bottom), grab " + fmtTime(tTop) + (up ? " (top)" : " (bottom, reversed)");
+  if (up) return { f: y => tBot + (tTop - tBot) * (yBot - y) / (yBot - yTop), desc };
+  return { f: y => tBot + (tTop - tBot) * (y - yTop) / (yBot - yTop), desc };
+}
+
+function updateCalibrationInfo() {
+  const el = $("calInfo");
+  if (!imageData) { el.textContent = "Load an image to calibrate."; return; }
+  const mp = buildMapper();
+  if (mp === null) { el.textContent = "Not calibrated — set the grab time."; return; }
+  if (mp.err) { el.textContent = mp.err; return; }
+  const a = getArea();
+  const tA = mp.f(a.y0), tB = mp.f(a.y1 - 1);
+  const lo = Math.min(tA, tB), hi = Math.max(tA, tB);
+  el.textContent = "Calibrated: " + fmtShort(lo) + " → " + fmtShort(hi) +
+                   (utcOn() ? " UTC" : " local") + " (" + fmtDur(hi - lo) + "). " + mp.desc;
+}
+["dlTime","dlAsUTC","exStart","newestAtTop","tStart","tEnd","utcAxis"].forEach(id =>
+  $(id).addEventListener("change", updateCalibrationInfo));
+ $("calSource").addEventListener("change", () => {
+  $("manualWindow").style.display = $("calSource").value === "manual" ? "block" : "none";
+  updateCalibrationInfo();
+});
+
+/* ═══════════════ SIGNAL FILTERS ═══════════════ */
+function medianFilt(arr, w) {
+  if (w <= 1) return arr.slice();
+  const half = w >> 1, out = new Array(arr.length);
+  const buf = new Array(w);
+  for (let i = 0; i < arr.length; i++) {
+    let c = 0;
+    for (let j = i - half; j <= i + half; j++)
+      if (j >= 0 && j < arr.length) buf[c++] = arr[j];
+    for (let a = 1; a < c; a++) {
+      const v = buf[a]; let b = a - 1;
+      while (b >= 0 && buf[b] > v) { buf[b+1] = buf[b]; b--; }
+      buf[b+1] = v;
+    }
+    out[i] = buf[c >> 1];
+  }
+  return out;
+}
+
+/* ═══════════════ MAIN ANALYSIS ═══════════════ */
+function analyze() {
+  if (!imageData) { setStatus("Load an image first.", "error"); return; }
+  const names = getTrackNames();
+  if (names.length === 0) { setStatus("The track list is empty.", "error"); return; }
+  const mp = buildMapper();
+  if (!mp) { setStatus("Set the grab time first (Grab time panel).", "error"); return; }
+  if (mp.err) { setStatus(mp.err, "error"); return; }
+  const a = getArea();
+  const n = names.length;
+  if (a.x1 - a.x0 < n || a.y1 - a.y0 < 4) {
+    setStatus("Plot area too small for " + n + " tracks. Redefine it.", "error");
+    return;
+  }
+
+  if ($("useAutoCols").checked) buildColumnMap();
+  const bands = bandsFor(n, a);
+  const mapUsed = !!(columnMap && columnMap.length === n && $("useAutoCols").checked);
+  if (!mapUsed) {
+    setStatus("WARNING: column structure not available — falling back to uniform bands. " +
+              "Results may be misaligned. Check Advanced → column structure.", "info");
+  }
+
+  const colorMode = $("colorMode").checked;
+  const invert    = $("invertDetect").checked;
+  const satTh  = Math.max(0, +$("satTh").value || 0);
+  const valTh  = Math.max(0, +$("valTh").value || 0);
+  const streakW = Math.max(1, Math.min(20, +$("streakW").value || 3));
+  let medW = Math.max(1, +$("medWindow").value || 1);
+  if (medW % 2 === 0) medW += 1;
+  let rowStep = Math.max(1, +$("rowStep").value || 1);
+  if (document.body.classList.contains("mode-simple") &&
+      (a.y1 - a.y0) / rowStep > 8000) rowStep = Math.ceil((a.y1 - a.y0) / 8000);
+  const thrFrac = Math.min(1, Math.max(0.01, parseFloat($("thrFrac").value) || 0.12));
+  const absFloor = Math.max(0, parseFloat($("absFloor").value) || 0);
+  const noiseK = Math.max(0, parseFloat($("noiseK").value) || 0);
+  const gate = Math.min(1, Math.max(0.01, parseFloat($("gate").value) || 0.12));
+  const minDuty = Math.min(1, Math.max(0.01, parseFloat($("minDuty").value) || 0.06));
+  const ndTrim = $("ndTrim").checked;
+  const minOffMs = Math.max(0, +$("minOffMin").value || 0) * 60000;
+
+  setStatus("Analyzing " + n + " tracks × " + (a.y1 - a.y0) + " rows" +
+            (rowStep > 1 ? " (step " + rowStep + ")" : "") + "...", "info");
+
+  setTimeout(() => {
+    try {
+      const W = imageData.width, data = imageData.data;
+      const rows = Math.max(2, Math.floor((a.y1 - a.y0) / rowStep));
+      const mapper = mp.f;
+      const msPerRow = Math.max(1, Math.abs(mapper(a.y0 + Math.min(rowStep, a.y1 - a.y0 - 1)) - mapper(a.y0)));
+
+      const st = names.map(nm => ({ name: nm, rows: [] }));
+      const maxBandW = Math.max(...bands.map(b => b[1] - b[0]));
+      const scratch = new Float64Array(maxBandW + 4);
+
+      /* ── pass 1: per-row compact-streak metric ── */
+      for (let ri = 0; ri < rows; ri++) {
+        const y = Math.min(a.y1 - 1, a.y0 + ri * rowStep);
+        const t = mapper(y);
+        const rowOff = y * W * 4;
+        for (let i = 0; i < n; i++) {
+          const sx0 = bands[i][0];
+          const sx1 = Math.max(bands[i][0] + 1, bands[i][1]);
+          const bandW = sx1 - sx0;
+          const sw = Math.max(1, Math.min(streakW, bandW));
+
+          for (let x = sx0; x < sx1; x++) {
+            const p = rowOff + x * 4;
+            const r = data[p], g = data[p+1], b = data[p+2];
+            let sc = 0;
+            if (invert) {
+              const mean = (r + g + b) / 3;
+              if (mean < 255 - valTh) sc = 1 - mean / 255;
+            } else {
+              const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+              if (colorMode) {
+                const sat = mx ? (mx - mn) / mx * 255 : 0;
+                if (sat > satTh && mx > valTh) sc = (sat / 255) * (mx / 255);
+              } else if (mx > valTh) {
+                sc = mx / 255;
+              }
+            }
+            scratch[x - sx0] = sc;
+          }
+
+          let best = 0;
+          if (sw === 1) {
+            for (let x = 0; x < bandW; x++) if (scratch[x] > best) best = scratch[x];
+          } else {
+            let s = 0;
+            for (let x = 0; x < bandW; x++) {
+              s += scratch[x];
+              if (x >= sw) s -= scratch[x - sw];
+              if (x >= sw - 1) { const v = s / sw; if (v > best) best = v; }
+            }
+          }
+          st[i].rows.push({ t, m: best, mF: 0, on: false, nd: false });
+        }
+      }
+
+      /* ── pass 2a: temporal median + per-station peak ── */
+      for (const s of st) {
+        const med = medianFilt(s.rows.map(r => r.m), medW);
+        for (let k = 0; k < s.rows.length; k++) s.rows[k].mF = med[k];
+        s.peak = percentile(med.slice().sort((x1, x2) => x1 - x2), 0.995);
+      }
+
+      /* ── pass 2b: per-row noise floor across all stations ── */
+      const rowNoise = new Float64Array(rows);
+      {
+        const buf = new Array(n);
+        for (let ri = 0; ri < rows; ri++) {
+          for (let i = 0; i < n; i++) buf[i] = st[i].rows[ri].mF;
+          buf.sort((x1, x2) => x1 - x2);
+          rowNoise[ri] = percentile(buf, 0.10);
+        }
+      }
+
+      /* ── pass 2c: global reference, thresholds, presence + duty gate ── */
+      const peaks = st.map(s => s.peak).sort((x1, x2) => x1 - x2);
+      const globalRef = percentile(peaks, 0.6);
+      if (!(globalRef > 1e-6)) {
+        setStatus("No signal found in the plot area: check the area and the track list.", "error");
+        return;
+      }
+      for (let i = 0; i < st.length; i++) {
+        const s = st[i];
+        for (let ri = 0; ri < s.rows.length; ri++) {
+          const r = s.rows[ri];
+          r.mNorm = s.peak > 1e-9 ? Math.min(2.5, r.mF / s.peak) : 0;
+          const absTh = Math.max(absFloor * globalRef, noiseK * rowNoise[ri]);
+          r.on = r.mF > thrFrac * s.peak && r.mF > absTh;
+        }
+        let firstIdx = -1;
+        for (let k = 0; k < s.rows.length; k++) if (s.rows[k].on) { firstIdx = k; break; }
+        s.dutyAfter = 0;
+        if (firstIdx >= 0) {
+          let c = 0;
+          for (let k = firstIdx; k < s.rows.length; k++) if (s.rows[k].on) c++;
+          s.dutyAfter = c / (s.rows.length - firstIdx);
+        }
+        s.absent = firstIdx < 0 || s.peak < gate * globalRef || s.dutyAfter < minDuty;
+        s.forcedOn = false; s.forcedDark = false;
+        if (mapUsed && columnMap[i]) {
+          if (columnMap[i].forced === "dark") { s.absent = true;  s.forcedDark = true; }
+          else if (columnMap[i].forced === "on") { s.absent = false; s.forcedOn = true; }
+        }
+        if (s.absent) for (const r of s.rows) r.on = false;
+        let tFirst = null;
+        for (const r of s.rows) if (r.on && (tFirst === null || r.t < tFirst)) tFirst = r.t;
+        s.tFirst = tFirst;
+        if (ndTrim && tFirst !== null)
+          for (const r of s.rows) if (r.t < tFirst) r.nd = true;
+        s.colAct = (mapUsed && columnMap[i]) ? columnMap[i].act : null;
+        s.colMax = (mapUsed && columnMap[i]) ? columnMap[i].actMax : null;
+      }
+
+      const tA = mapper(a.y0), tB = mapper(a.y1 - 1);
+      const tMin = Math.min(tA, tB), tMax = Math.max(tA, tB);
+
+      /* ── pass 3: OFF period detection (ND rows are barriers) ── */
+      const offPeriods = [];
+      const stats = [];
+      for (const s of st) {
+        if (!s.absent) {
+          let startIdx = -1;
+          for (let k = 0; k <= s.rows.length; k++) {
+            const r = k < s.rows.length ? s.rows[k] : null;
+            const off = r !== null && !r.nd && !r.on;
+            if (off && startIdx < 0) startIdx = k;
+            if (!off && startIdx >= 0) {
+              const ta = s.rows[startIdx].t, tb = s.rows[k - 1].t;
+              const from = Math.min(ta, tb);
+              const to = Math.max(ta, tb) + msPerRow;
+              offPeriods.push({ station: s.name, from, to, durMs: to - from });
+              startIdx = -1;
+            }
+          }
+        }
+        let onCnt = 0, ndCnt = 0;
+        for (const r of s.rows) { if (r.nd) ndCnt++; else if (r.on) onCnt++; }
+        const eff = s.rows.length - ndCnt;
+        stats.push({
+          name: s.name, total: s.rows.length, nd: ndCnt,
+          onPct: eff > 0 ? 100 * onCnt / eff : 0,
+          peak: s.peak, absent: s.absent, firstOn: s.tFirst,
+          dutyAfter: s.dutyAfter, colAct: s.colAct, colMax: s.colMax,
+          forcedOn: s.forcedOn, forcedDark: s.forcedDark
+        });
+      }
+      const filtered = offPeriods.filter(p => p.durMs >= minOffMs)
+                                 .sort((x, y) => x.from - y.from);
+
+      analysis = { st, offPeriods: filtered, stats, tMin, tMax, msPerRow, rowStep, globalRef,
+                   bands, mapUsed,
+        params: { area: a, colorMode, invert, satTh, valTh, streakW, medW, rowStep,
+                  thrFrac, absFloor, noiseK, gate, minDuty, ndTrim, minOffMin: minOffMs / 60000,
+                  utc: utcOn(), calibration: mp.desc, mapUsed } };
+
+      renderResults();
+      if ($("showMask").checked) drawMaskOverlay();
+      const absentList = stats.filter(s => s.absent).map(s => s.name);
+      setStatus("Done: " + (rows * n) + " samples, " + filtered.length + " OFF periods (≥ " +
+                (minOffMs / 60000) + " min). Columns: " +
+                (mapUsed ? "auto-detected structure" : "UNIFORM FALLBACK (check alignment!)") + "." +
+                (absentList.length ? " NO SIGNAL: " + absentList.join("; ") + "." : ""), "success");
+    } catch (err) {
+      setStatus("Error: " + err.message, "error");
+      console.error(err);
+    }
+  }, 30);
+}
+
+/* ═══════════════ MASK OVERLAY (verification) ═══════════════ */
+function toggleMask() {
+  if (!analysis || !img) { setStatus("Run the analysis first.", "error"); return; }
+  maskOn = !maskOn;
+  maskOn ? drawMaskOverlay() : resetView();
+}
+
+ $("showMask").addEventListener("change", () => {
+  if (!analysis || !img) return;
+  maskOn = $("showMask").checked;
+  maskOn ? drawMaskOverlay() : resetView();
+});
+
+function drawMaskOverlay() {
+  resetView();
+  const a = analysis.params.area;
+  const st = analysis.st;
+  const n = st.length;
+  const rows = st[0].rows.length;
+  const step = analysis.rowStep;
+  const bands = analysis.bands;
+  const mc = document.createElement("canvas");
+  mc.width = Math.max(1, Math.round(a.x1 - a.x0));
+  mc.height = Math.max(1, Math.round(a.y1 - a.y0));
+  const mctx = mc.getContext("2d");
+  const mimg = mctx.createImageData(mc.width, mc.height);
+
+  for (let i = 0; i < n; i++) {
+    if (st[i].absent) continue;
+    const bx0 = Math.max(0, Math.round(bands[i][0] - a.x0));
+    const bx1 = Math.min(mc.width, Math.round(bands[i][1] - a.x0));
+    for (let ri = 0; ri < rows; ri++) {
+      const yTop = Math.min(mc.height - 1, ri * step);
+      const yBot = Math.min(mc.height, (ri + 1) * step);
+      const r = st[i].rows[ri];
+      const col = r.on ? [0, 255, 120] : (r.nd ? [70, 90, 160] : [255, 70, 70]);
+      for (let y = yTop; y < yBot; y++) {
+        const off = y * mc.width * 4;
+        for (let x = bx0; x < bx1; x++) {
+          const p = off + x * 4;
+          mimg.data[p] = col[0]; mimg.data[p+1] = col[1]; mimg.data[p+2] = col[2]; mimg.data[p+3] = 110;
+        }
+      }
+    }
+  }
+  mctx.putImageData(mimg, 0, 0);
+  $("mainCanvas").getContext("2d").drawImage(mc, Math.round(a.x0), Math.round(a.y0));
+}
+
+/* ═══════════════ RESULTS RENDERING ═══════════════ */
+function renderResults() {
+  $("resultsPanel").style.display = "block";
+
+  const gapCount = {};
+  const offTime = {};
+  for (const p of analysis.offPeriods) {
+    gapCount[p.station] = (gapCount[p.station] || 0) + 1;
+    offTime[p.station] = (offTime[p.station] || 0) + p.durMs;
+  }
+  $("summaryBody").innerHTML = analysis.stats.map(s => {
+    const stTxt = s.absent
+      ? (s.forcedDark ? "DARK*" : "NO SIGNAL")
+      : (s.forcedOn ? "OK*" : "OK");
+    const stCls = s.absent ? "st-absent" : "st-ok";
+    return `<tr><td>${esc(s.name)}</td>` +
+      `<td class="${stCls}">${stTxt}</td>` +
+      `<td>${s.colAct !== null && s.colAct !== undefined ? (100 * s.colAct).toFixed(1) + "%" : "—"}</td>` +
+      `<td>${s.colMax !== null && s.colMax !== undefined ? (100 * s.colMax).toFixed(1) + "%" : "—"}</td>` +
+      `<td>${s.firstOn !== null ? fmtShort(s.firstOn) : "—"}</td>` +
+      `<td>${(100 * s.dutyAfter).toFixed(1)}%</td>` +
+      `<td>${s.onPct.toFixed(1)}%</td>` +
+      `<td>${gapCount[s.name] || 0}</td>` +
+      `<td>${offTime[s.name] ? fmtDur(offTime[s.name]) : "—"}</td>` +
+      `<td>${s.peak.toFixed(3)}</td></tr>`;
+  }).join("");
+
+  $("offBody").innerHTML = analysis.offPeriods.map(p =>
+    `<tr><td>${esc(p.station)}</td><td>${fmtTime(p.from)}</td><td>${fmtTime(p.to)}</td><td>${fmtDur(p.durMs)}</td></tr>`
+  ).join("") || `<tr><td colspan="4">No OFF periods found.</td></tr>`;
+
+  let html = [], total = 0;
+  outer:
+  for (const s of analysis.st) {
+    const sorted = [...s.rows].sort((x, y) => x.t - y.t);
+    for (const r of sorted) {
+      total++;
+      if (total > 5000) break outer;
+      const cls = r.on ? "badge-on" : (r.nd ? "badge-nd" : "badge-off");
+      const txt = r.on ? "ON" : (r.nd ? "ND" : "OFF");
+      html.push(`<tr><td>${fmtTime(r.t)}</td><td>${esc(s.name)}</td><td class="${cls}">${txt}</td></tr>`);
+    }
+  }
+  $("fullBody").innerHTML = html.join("");
+  $("fullNote").textContent = total > 5000
+    ? "Showing first 5000 of " + total + " rows — use the CSV export for the complete dataset."
+    : "Total rows: " + total + ".";
+
+  drawHeatmap();
+  $("resultsPanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ═══════════════ HEATMAP ═══════════════ */
+function drawHeatmap() {
+  const cv = $("chartCanvas");
+  const st = analysis.st, n = st.length;
+  const dpr = window.devicePixelRatio || 1;
+  const labelW = 195, padR = 80, padT = 24, padB = 28;
+  const rowH = Math.max(7, Math.min(14, Math.floor(760 / n)));
+  const cssW = Math.max(600, cv.parentElement.clientWidth - 8);
+  const cssH = padT + padB + n * rowH;
+  cv.width = cssW * dpr; cv.height = cssH * dpr;
+  cv.style.width = cssW + "px"; cv.style.height = cssH + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ctx.fillStyle = "#0d1117";
+  ctx.fillRect(0, 0, cssW, cssH);
+  const plotW = cssW - labelW - padR;
+  const plotH = cssH - padT - padB;
+  const span = Math.max(1, analysis.tMax - analysis.tMin);
+  const t2x = t => labelW + ((t - analysis.tMin) / span) * plotW;
+
+  if ($("nightShade").checked) {
+    const lat = parseFloat($("siteLat").value), lon = parseFloat($("siteLon").value);
+    if (isFinite(lat) && isFinite(lon)) {
+      ctx.fillStyle = "rgba(70,100,200,0.16)";
+      let runStart = null;
+      const N = Math.max(50, Math.floor(plotW / 2));
+      for (let i = 0; i <= N; i++) {
+        const t = analysis.tMin + span * i / N;
+        const night = sunElevationDeg(t, lat, lon) < NIGHT_ELEV;
+        const x = labelW + plotW * i / N;
+        if (night && runStart === null) runStart = x;
+        if ((!night || i === N) && runStart !== null) {
+          ctx.fillRect(runStart, padT, x - runStart, plotH);
+          runStart = null;
+        }
+      }
+    }
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.setLineDash([4, 4]);
+  ctx.fillStyle = "#8b949e";
+  ctx.font = "10px monospace";
+  if (utcOn()) {
+    let t = Math.ceil((analysis.tMin + 1) / 86400000) * 86400000;
+    while (t <= analysis.tMax) {
+      const x = t2x(t);
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+      ctx.fillText(p2(new Date(t).getUTCDate()), x + 3, padT + 10);
+      t += 86400000;
+    }
+  } else {
+    const d = new Date(analysis.tMin);
+    d.setHours(0, 0, 0, 0);
+    if (d.getTime() <= analysis.tMin) d.setDate(d.getDate() + 1);
+    while (d.getTime() <= analysis.tMax) {
+      const x = t2x(d.getTime());
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+      ctx.fillText(p2(d.getDate()), x + 3, padT + 10);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  ctx.restore();
+
+  ctx.font = "10px sans-serif";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < n; i++) {
+    const y = padT + i * rowH;
+    let nm = st[i].name;
+    if (nm.length > 27) nm = nm.slice(0, 26) + "…";
+    ctx.fillStyle = st[i].absent ? "#6a6a6a" : "#c9d1d9";
+    ctx.fillText(nm, 4, y + rowH / 2);
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    ctx.fillRect(labelW, y + 1, plotW, rowH - 2);
+    if (st[i].absent) continue;
+    ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+    const rows = st[i].rows;
+    let k = 0;
+    while (k < rows.length) {
+      if (rows[k].on) {
+        let j = k;
+        while (j < rows.length && rows[j].on) j++;
+        const t1 = Math.min(rows[k].t, rows[j - 1].t);
+        const t2 = Math.max(rows[k].t, rows[j - 1].t) + analysis.msPerRow;
+        const xa = Math.max(labelW, t2x(t1));
+        const xb = Math.min(labelW + plotW, t2x(t2));
+        if (xb > xa) ctx.fillRect(xa, y + 1, xb - xa, rowH - 2);
+        k = j;
+      } else k++;
+    }
+  }
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#8b949e";
+  const ticks = 8;
+  for (let i = 0; i <= ticks; i++) {
+    const x = labelW + plotW * i / ticks;
+    ctx.fillText(fmtShort(analysis.tMin + span * i / ticks), x - 26, cssH - 8);
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+  }
+  ctx.fillStyle = "#58a6ff";
+  ctx.fillText("ON periods per station, " + (utcOn() ? "UTC" : "local") + " (time →)", labelW, 14);
+}
+
+/* heatmap tooltip */
+ $("chartCanvas").addEventListener("mousemove", e => {
+  if (!analysis) return;
+  const cv = $("chartCanvas"), rect = cv.getBoundingClientRect();
+  const labelW = 195, padT = 24, padB = 28, padR = 80;
+  const n = analysis.st.length;
+  const rowH = Math.max(7, Math.min(14, Math.floor(760 / n)));
+  const plotW = rect.width - labelW - padR;
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const tip = $("chartTip");
+  if (x < labelW || x > labelW + plotW || y < padT || y > rect.height - padB) { tip.style.display = "none"; return; }
+  const i = Math.floor((y - padT) / rowH);
+  if (i < 0 || i >= n) { tip.style.display = "none"; return; }
+  const rows = analysis.st[i].rows;
+  const t = analysis.tMin + ((x - labelW) / plotW) * (analysis.tMax - analysis.tMin);
+  let k = 0;
+  if (rows.length > 1) {
+    const signed = (rows[rows.length - 1].t - rows[0].t) / (rows.length - 1);
+    k = Math.round((t - rows[0].t) / (signed || analysis.msPerRow));
+  }
+  k = Math.max(0, Math.min(rows.length - 1, k));
+  const r = rows[k];
+  const state = r.on ? "ON" : (r.nd ? "ND (no data)" : "OFF");
+  const color = r.on ? "#7ee787" : (r.nd ? "#8b949e" : "#f85149");
+  tip.innerHTML = "<b>" + esc(analysis.st[i].name) + "</b><br>" + fmtTime(r.t) +
+                  "<br>metric " + r.mNorm.toFixed(3) +
+                  '<br><span style="color:' + color + '">' + state + "</span>";
+  tip.style.display = "block";
+  tip.style.left = (e.clientX + 14) + "px";
+  tip.style.top = (e.clientY + 14) + "px";
+});
+ $("chartCanvas").addEventListener("mouseleave", () => { $("chartTip").style.display = "none"; });
+
+/* ═══════════════ TABS & EXPORT ═══════════════ */
+function showTab(name, btn) {
+  document.querySelectorAll(".tab-btn").forEach(b => { if (b.id !== "maskBtn") b.classList.remove("active"); });
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  $("tab-" + name).classList.add("active");
+  if (name === "heatmap" && analysis) drawHeatmap();
+}
+
+function exportOffCSV() {
+  if (!analysis) { setStatus("Run the analysis first.", "error"); return; }
+  let csv = "station,off_from,off_to,duration_min\n";
+  for (const p of analysis.offPeriods)
+    csv += `"${p.station}","${fmtTime(p.from)}","${fmtTime(p.to)}",${(p.durMs / 60000).toFixed(2)}\n`;
+  download(csv, "loran_off_periods.csv", "text/csv");
+}
+function exportFullCSV() {
+  if (!analysis) { setStatus("Run the analysis first.", "error"); return; }
+  let csv = "timestamp,station,state\n";
+  for (const s of analysis.st) {
+    const sorted = [...s.rows].sort((x, y) => x.t - y.t);
+    for (const r of sorted) {
+      const state = r.on ? "ON" : (r.nd ? "ND" : "OFF");
+      csv += `"${fmtTime(r.t)}","${s.name}",${state}\n`;
+    }
+  }
+  download(csv, "loran_full_data.csv", "text/csv");
+}
+function exportMetricCSV() {
+  if (!analysis) { setStatus("Run the analysis first.", "error"); return; }
+  let csv = "timestamp,station,metric,metric_filt,metric_norm,state\n";
+  for (const s of analysis.st) {
+    const sorted = [...s.rows].sort((x, y) => x.t - y.t);
+    for (const r of sorted) {
+      const state = r.on ? "ON" : (r.nd ? "ND" : "OFF");
+      csv += `"${fmtTime(r.t)}","${s.name}",${r.m.toFixed(4)},${r.mF.toFixed(4)},${r.mNorm.toFixed(4)},${state}\n`;
+    }
+  }
+  download(csv, "loran_signal_metric.csv", "text/csv");
+}
+function exportJSON() {
+  if (!analysis) { setStatus("Run the analysis first.", "error"); return; }
+  const obj = {
+    generated: new Date().toISOString(),
+    params: analysis.params,
+    stations: analysis.stats.map(s => ({
+      name: s.name,
+      status: s.absent ? (s.forcedDark ? "DARK (forced)" : "NO SIGNAL") : (s.forcedOn ? "OK (forced)" : "OK"),
+      col_act: s.colAct !== null && s.colAct !== undefined ? +s.colAct.toFixed(4) : null,
+      col_max: s.colMax !== null && s.colMax !== undefined ? +s.colMax.toFixed(4) : null,
+      first_on: s.firstOn !== null ? fmtTime(s.firstOn) : null,
+      duty_after_first_on: +s.dutyAfter.toFixed(4),
+      on_pct: +s.onPct.toFixed(2), peak: +s.peak.toFixed(4)
+    })),
+    offPeriods: analysis.offPeriods.map(p => ({
+      station: p.station, off_from: fmtTime(p.from), off_to: fmtTime(p.to),
+      duration_min: +(p.durMs / 60000).toFixed(2)
+    }))
+  };
+  download(JSON.stringify(obj, null, 2), "loran_data.json", "application/json");
+}
+
+/* ═══════════════ INIT ═══════════════ */
+(function initTimes() {
+  const now = Date.now();
+  $("tStart").value = msToUTCInput(now - 72 * 3600000);
+  $("tEnd").value = msToUTCInput(now);
+})();
+let savedMode = "simple";
+try { savedMode = localStorage.getItem("loranMode") || "simple"; } catch (e) {}
+setMode(savedMode);
+updateTrackCount();
+</script>
+</body>
+</html>
