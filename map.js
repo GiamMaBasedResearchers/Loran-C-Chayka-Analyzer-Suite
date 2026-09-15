@@ -243,8 +243,8 @@
     const D = api.dataset;
     root.innerHTML = `
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-        <label>Date (UTC, dataset: ${D.start} &rarr; ${D.end})
-          <input type="date" id="mpDate" value="${D.start}" min="${D.start}" max="${D.end}"></label>
+      <label>Date (UTC)
+        <input type="date" id="mpDate" value="${D.start}" min="${D.start}" max="${D.end}"></label>
         <label>Hour <input type="range" id="mpHour" min="0" max="24" step="0.25" value="12" style="width:200px"></label>
         <span id="mpClock" style="font-family:monospace;color:#58a6ff;min-width:130px"></span>
         <label>Basemap <select id="mpBase">
