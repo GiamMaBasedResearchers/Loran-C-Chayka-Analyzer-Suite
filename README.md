@@ -82,6 +82,9 @@ Engineering	Radio-engineering statistics: solar correlation (Pearson r + best la
 <img width="1895" height="928" alt="image" src="https://github.com/user-attachments/assets/aca5fa8c-8e11-40f8-8f03-85dd810d0c03" />
 
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6ca1a3dd-4013-4a39-9239-75950d4308a1" />
+
+
 Info	Roadmap and external-resources evaluation.
 
 
