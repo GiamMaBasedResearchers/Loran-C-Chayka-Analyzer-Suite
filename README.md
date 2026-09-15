@@ -36,9 +36,17 @@ Tab	What it does
 Extractor (core, frozen v1.0)	Loads the monitor image, auto-detects the plot area and the real column structure (active blocks + dark gaps via a global uniform-grid fit), extracts per-track ON/OFF with a noise- and day/night-robust pipeline. Simple & Advanced UI modes. Exports CSV/JSON.
 
 
-<img width="1852" height="917" alt="image" src="https://github.com/user-attachments/assets/3720bf93-2e79-4149-a02a-f7de1c804b0e" />
+<img width="1885" height="921" alt="image" src="https://github.com/user-attachments/assets/2caa1117-af1b-4f55-b680-84e59607dd34" />
 
-<img width="1853" height="922" alt="image" src="https://github.com/user-attachments/assets/8270dbf9-2f71-4d6b-9a66-a89fbe70fb31" />
+
+<img width="1885" height="918" alt="image" src="https://github.com/user-attachments/assets/f2ab4346-e1f3-484e-8b0f-0509cf6e6699" />
+
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/d536b275-70aa-4513-867d-5865c01c73d1" />
+
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/32368b48-dfbf-48aa-818a-0f2f64d37e15" />
+
 
 
 Map	Leaflet world map (Esri basemaps, auto-fallback): stations, GRI chain links, approximate coverage model (groundwave + night skywave). Advanced section: load the extracted CSV and watch the real signals animate on the map across the whole extract.
