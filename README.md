@@ -148,7 +148,7 @@ Summary columns explained
 - ClimateViewer ELF/ULF/VLF transmission sites — transmitter coordinates sourcehttps://climateviewer.org/history-and-science/atmospheric-sensors-and-emf-sites/maps/extremely-low-frequency-elf-ulf-vlf-transmission-sites/
 - Russian LF/VLF field modeling paper (VSU) — theory backgroundhttps://www.cs.vsu.ru/ipmt-conf/conf/2021/works/5.%20%D0%9F%D1%80%D0%B8%D0%BA%D0%BB%D0%B0%D0%B4%D0%BD%D0%BE%D0%B5%20%D0%BC%D0%BE%D0%B4%D0%B5%D0%BB%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5%20%D0%B8%20E-business/1696.pres.pdf
 - Evaluated, not integrated:PSKReporter — https://pskreporter.info/pskmap.html(ham-band automated spots only — no VLF/Loran reporting network exists; our extracted data IS the VLF dataset)hf.dxview.org — https://hf.dxview.org/map(stops at 1.8 MHz, no VLF)
-
+- American Loran Consortium — station records (site existence, C/Y types)https://www.alcpress.org/comm/loran/
 
 
 🛣 Roadmap
