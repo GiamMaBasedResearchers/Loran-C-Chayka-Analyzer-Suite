@@ -85,7 +85,7 @@ Runs 100% client-side — no server, no data leaves your machine (basemap tiles 
 1. Download / clone the repository — file list:
 index.html            shell: tabs, module loader, shared APIcore_extractor.html   extraction core (frozen v1.0, runs in an iframe)stations.js           world station database (~70 entries)map.js                Leaflet map + real-signal animationseason.js             monthly / daily signal heatmapstools.js              image inspector (zoom, bands, deep dive)engineering.js        engineering statistics & report
 2. Open index.html in a modern browser (Chrome/Edge/Firefox). No build, no server needed.Internet is required only for the map basemap tiles (the map degrades gracefully to"No basemap" offline; everything else is fully offline).
-3. The dataset window is configured in one place — LORAN_API.dataset insideindex.html (start / end, default 2026-01-01 / 2026-08-30 to match theexample extract). Change it when you process a different grab.
+3. The dataset window is configured in one place — LORAN_API.dataset insideindex.html (start / end, default 2026-01-01 / 2026-08-30 to match theexample extract). Change it when you process a different grab. TO BE REMOVE
 
 Typical workflow
 
@@ -172,11 +172,11 @@ Summary columns explained
 🔗 Extra File:
 
  
-- loran_data.json
-json ready to import - 01012026 to 30082026
-
 - lorvw_260101-0430.jpg
-Image spectrum from 01/01/2026 to 30/08/2026
+Image spectrum from 01/01/2026 to 30/04/2026
+
+- lorvw_260430-0909.jpg
+Image spectrum from 01/05/2026 to 09/09/2026
 
 - lorvwold.jpg
 image spectrum from 10/09/2026 to 14/09/2026
